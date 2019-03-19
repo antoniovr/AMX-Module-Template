@@ -34,26 +34,25 @@ volatile integer _TYPE_IP    = 2
 
 volatile long    _TLID = 1
 
-volatile integer _ST_FREE           = 1   // Libre para enviar ordenes al equipo.
-volatile integer _ST_WAIT_RESPONSE  = 2   // Esperando respuesta del equipo (a una orden).
-volatile integer _ST_WAIT_EXECUTION = 3   // Esperando tiempo adicional para ejecucion.
-volatile integer _ST_WAIT_STATUS    = 4   // Esperando respuesta del equipo (peticion estado).
+volatile integer _ST_FREE           = 1   // Free to send commands to the device
+volatile integer _ST_WAIT_RESPONSE  = 2   // Waiting for a response from a device to a command
+volatile integer _ST_WAIT_EXECUTION = 3   // Waiting for an aditional time to execute (when there is no feedback)
+volatile integer _ST_WAIT_STATUS    = 4   // Waiting for a response from a device to a pulling status
 
-volatile integer _BUFFER_LONG       = 64  // Tamano maximo de la respuesta (desde el equipo controlado).
-volatile integer _QUEUE_ITEM_LONG   = 16  // Tamano maximo de una orden (hacia el equipo controlado).
-volatile integer _QUEUE_LONG        = 128 // Numero maximo de ordenes que se "enQueueran"
-volatile integer _TIMEOUT           = 3   // Tiempo maximo de respuesta a una orden.
-volatile integer _DEFAULT_TEXE      = 1   // Tiempo de ejecucion por defecto de un comando.
-volatile integer _TIME_POLL_STATUS  = 10  // Tiempo entre solicitudes de estado.
+volatile integer _BUFFER_LONG       = 64  // Response maximum size
+volatile integer _QUEUE_ITEM_LONG   = 32  // Command maximum size
+volatile integer _QUEUE_LONG        = 32  // Qeue size
+volatile integer _TIMEOUT           = 3   // Maximum response time to a command
+volatile integer _DEFAULT_TEXE      = 1   // Default execution time to a command
+volatile integer _TIME_POLL_STATUS  = 20  // Time between pulling commands
 
 #warn '*** Uncomment if we are controlling a projector'
 //volatile integer _TIME_WARMING = 300
 //volatile integer _TIME_COOLING = 300
 
 #warn '*** Add here the command list and the index constant'
-
-volatile integer _CMD_1 = 1
-volatile integer _CMD_2 = 2
+volatile integer _CMD_POWER_ON  = 1
+volatile integer _CMD_POWER_OFF = 2
 // Etc
 
 volatile char _COMMANDS[][32] = {'',
@@ -70,7 +69,9 @@ DEFINE_TYPE
 structure _uStatus
 {
 	integer bOn
-	integer nInput
+	char	  sInputType[16]
+	integer nInputNumber
+	
 	#warn '*** Uncomment if we are controlling a projector'	
 	//integer bWarming
 	//integer bCooling
@@ -109,6 +110,9 @@ persistent char sIPAddress[16] = '192.168.1.1'
 persistent char sBaudRate[6] = '9600'
 
 volatile sinteger nHandler = -1
+persistent integer nDebugLevel = 1
+
+volatile _uStatus uStatus
 
 
 DEFINE_START
@@ -116,8 +120,6 @@ DEFINE_START
 create_buffer dvDevice,sBuffer
 
 Timeline_Create(_TLID,lTimes,1,Timeline_Relative,Timeline_Repeat)
-
-define_mutually_exclusive([vdvDevice,_CT_CH_INPUT0]..[vdvDevice,_CT_CH_INPUT18])
 
 
 (************************************************************************)
@@ -139,16 +141,16 @@ define_function char fnChecksum(char sPacket[])
 
 define_function fnPower(integer bPower)
 {
-	_uQueueCommand newCommand
+	stack_var _uQueueCommand newCommand
 	if(bPower) {newCommand.sData = "''"}
 	else		  {newCommand.sData = "''"}
 	
 	fnQueuePush(newCommand)
 }
 
-define_function fnInput(integer nInput)
+define_function fnInput(char sType[],integer nInput)
 {
-	_uQueueCommand newCommand
+	stack_var _uQueueCommand newCommand
 	newCommand.sData = "''"
 
 	fnQueuePush(newCommand)
@@ -158,7 +160,7 @@ define_function fnSwitch(integer nIn,
 								 integer nOut,
 								 integer nLevel)
 {
-	_uQueueCommand newCommand
+	stack_var _uQueueCommand newCommand
 	newCommand.sData = "''"
 	
 	fnQueuePush(newCommand)
@@ -182,6 +184,7 @@ define_function fnMainLine()
          cancel_wait 'wait poll status'
          
          (* Send the command *)
+			if(nDebugLevel == 4) {fnDebug("uCommandToSend.sData")}
          send_string dvDevice,"uCommandToSend.sData"
          
          #IF_DEFINED __BIDIRECTIONAL__
@@ -190,7 +193,7 @@ define_function fnMainLine()
 				nModuleStatus = _ST_WAIT_EXECUTION // One way communication
 			#END_IF
 			
-         if([vdvDevice,_CT_CH_FB_SIMULADO])
+         if([vdvDevice,SIMULATED_FB])
          {
             sBuffer = "sBuffer,'OK',10,13"
             wait 1 fnProcessBuffer()
@@ -248,10 +251,6 @@ define_function fnMainLine()
          nModuleStatus = _ST_FREE
       }
    }
-   
-   [vdvDevice,_CT_CH_BUSY] = (uQueue.nHead <> uQueue.nTail) or 
-									  (nModuleStatus = _ST_WAIT_RESPONSE) or
-									  (nModuleStatus = _ST_WAIT_EXECUTION)
 }
 
 define_function fnProcessBuffer()
@@ -323,7 +322,7 @@ define_function fnResetModule()
 	fnQueueClear()
    nModuleStatus = _ST_FREE 
 	
-   off[vdvDevice,_CT_CH_ON]
+   off[vdvDevice,POWER_FB]
 }
 
 define_function integer fnTakePacket(char sPacket[])
@@ -349,9 +348,12 @@ define_function fnProcessPacket(char sPacket[])
 	*)
 	
 	#warn '*** Depending on the answer, activate the feedback channels in the virtual device'
+	
+
 	(*
-	[vdvDevice,_CT_CH_ON]
-	[vdvDevice,_CT_CH_WARMING]
+	[vdvDevice,	POWER_FB]
+	[vdvDevice,LAMP_COOLING_FB]
+	[vdvDevice,LAMP_WARMING_FB]
 	[..]
 	*)
 
@@ -401,11 +403,90 @@ data_event[dvDevice]
 }
 
 (**** SNAPI COMPATIBILITY *********************************************)
+channel_event[vdvDevice,POWER]
+{
+	on:
+	{
+		if([vdvDevice,POWER_FB]) {fnPower(false)}
+		else							 {fnPower(true)}
+	}
+}
+
+channel_event[vdvDevice,PIC_MUTE]
+{
+	on:
+	{
+		if([vdvDevice,PIC_MUTE_FB]) 
+		{
+			// Video unmute
+		}
+		else								 
+		{
+			// Video mute
+		}
+		off[vdvDevice,PIC_MUTE]
+	}
+}
+
+channel_event[vdvDevice,PIC_MUTE_ON]
+{
+	on:
+	{
+		// Video mute
+	}
+	off:
+	{
+		// Video unmute
+	}
+}
+
+channel_event[vdvDevice,MENU_FUNC]
+{
+	on:
+	{
+		off[vdvDevice,MENU_FUNC]
+	}
+}
+
+channel_event[vdvDevice,MENU_UP]
+{
+	on:
+	{
+		off[vdvDevice,MENU_UP]
+	}
+}
+
+channel_event[vdvDevice,MENU_DN]
+{
+	on:
+	{
+		off[vdvDevice,MENU_DN]
+	}	
+}	
+
+channel_event[vdvDevice,MENU_LT]
+{
+	on:
+	{
+		off[vdvDevice,MENU_LT]
+	}
+}
+
+channel_event[vdvDevice,MENU_RT]
+{
+	on:
+	{
+		off[vdvDevice,MENU_RT]
+	}
+}
+
+
 channel_event[vdvDevice,PWR_ON]
 {
 	on:
 	{
 		fnPower(true)
+		off[vdvDevice,PWR_ON]
 	}
 }
 
@@ -414,6 +495,7 @@ channel_event[vdvDevice,PWR_OFF]
 	on:
 	{
 		fnPower(false)
+		off[vdvDevice,PWR_OFF]
 	}
 }
 (**********************************************************************)
@@ -434,6 +516,15 @@ data_event[vdvDevice]
 		
 		select
 		{
+			active(find_string(sData,'?DEBUG',1)):
+			{
+				fnDebug("'DEBUG-',itoa(nDebugLevel)")
+			}
+			active(find_string(sData,'DEBUG-',1)):
+			{
+				remove_string(sData,'DEBUG-',1)
+				nDebugLevel = atoi("sData")
+			}
 			active(find_string(sData,'PROPERTY-IP_Address,',1)):
 			{
 				remove_string(sData,'PROPERTY-IP_Address,',1)
@@ -444,25 +535,46 @@ data_event[vdvDevice]
 					nControlType = _TYPE_IP
 				}
 			}
+			active(find_string(sData,'PROPERTY-Port,',1)):
+			{
+				remove_string(sData,'PROPERTY-Port,',1)
+				if(length_string(sData))
+				{
+					nIpPort = atoi("sData")
+					nHandler = -1
+					nControlType = _TYPE_IP
+				}
+			}			
 			active(find_string(sData,'PROPERTY-Baud_Rate,',1)):
 			{
 				remove_string(sData,'PROPERTY-Baud_Rate,',1)
 				if(length_string(sData))
 				{
+					nHandler = 0
 					sBaudRate = sData
 					send_command dvDevice,"'SET BAUD ',sBaudRate,',N,8,1 485 DISABLE'"
 					send_command dvDevice,'HSOFF'					
 					nControlType = _TYPE_RS232
 				}			
 			}
-			active(1): // Default
-			{	
-				cCmd = get_buffer_char(sData)
-				switch(cCmd)
-				{
-					case _CT_CMD_POWER: {fnPower(sData[1])}
-					case _CT_CMD_INPUT: {fnInput(sData[1])}
-				}
+			active(find_string(sData,'PASSTHRU-',1)):
+			{
+				stack_var _uQueueCommand newElement
+				remove_string(sData,'PASSTHRU-',1)
+				newElement.sData = sData
+				fnQueuePush(newElement)
+				//send_string dvDevice,"sData"
+			}
+			active(find_string(sData,'INPUT-',1)):
+			{
+				stack_var integer nComma
+				stack_var char sType[32]
+				stack_var integer nInput
+				remove_string(sData,'INPUT-',1)
+				nComma = find_string(sData,',',1)
+				sType = get_buffer_string(sData,nComma-1)
+				nInput = atoi("sData")
+				fnInput(sType,nInput)
 			}
 		}
    }
