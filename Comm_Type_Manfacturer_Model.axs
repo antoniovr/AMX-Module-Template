@@ -295,6 +295,17 @@ DEFINE_START
 	nModuleStatus = _ST_FREE 
 	
 	off[vdvDevice,POWER_FB]
+	
+	if(nControlType == _TYPE_RS232)
+	{
+	    send_command dvDevice,"'SET BAUD ',sBaudRate,',N,8,1 485 DISABLE'"
+	    send_command dvDevice,'HSOFF'
+	}
+	if(nControlType == _TYPE_IP)
+	{
+	    ip_client_close(dvDevice.PORT)	
+	    snHandler = -1
+	}	
     }
 
     define_function integer fnTakePacket(char sPacket[])
@@ -465,7 +476,6 @@ DEFINE_EVENT
 		    if(length_string(sData))
 		    {
 			sIPAddress = sData
-			snHandler = -1
 			nControlType = _TYPE_IP
 		    }
 		}
@@ -475,7 +485,6 @@ DEFINE_EVENT
 		    if(length_string(sData))
 		    {
 			nIpPort = atoi("sData")
-			snHandler = -1
 			nControlType = _TYPE_IP
 		    }
 		}			
@@ -485,9 +494,7 @@ DEFINE_EVENT
 		    if(length_string(sData))
 		    {
 			snHandler = 0
-			sBaudRate = sData
-			send_command dvDevice,"'SET BAUD ',sBaudRate,',N,8,1 485 DISABLE'"
-			send_command dvDevice,'HSOFF'					
+			sBaudRate = sData					
 			nControlType = _TYPE_RS232
 		    }			
 		}
@@ -499,6 +506,10 @@ DEFINE_EVENT
 		    fnQueuePush(newElement)
 		    //send_string dvDevice,"sData"
 		}
+		active(find_string(sData,'REINIT',1)):
+		{
+		    fnResetModule()
+		}		
 		active(find_string(sData,'INPUT-',1)):
 		{
 		    stack_var integer nComma
