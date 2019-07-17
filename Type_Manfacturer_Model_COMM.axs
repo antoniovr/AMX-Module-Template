@@ -1,4 +1,8 @@
-MODULE_NAME='Comm_Type_Manfacturer_Model' (dev vdvDevice,
+(***********************************************************)
+(*  FILE_LAST_MODIFIED_ON: 07/16/2019  AT: 13:47:43        *)
+(***********************************************************)
+
+MODULE_NAME='Type_Manfacturer_Model_COMM' (dev vdvDevice,
 					   dev dvDevice)
 
 (*
@@ -24,42 +28,42 @@ MODULE_NAME='Comm_Type_Manfacturer_Model' (dev vdvDevice,
 
 DEFINE_CONSTANT
 
-    volatile integer _PORT_ALREADY_IN_USE  = 14
-    volatile integer _SOCKET_ALREADY_LISTENING = 15
+    integer _PORT_ALREADY_IN_USE  = 14
+    integer _SOCKET_ALREADY_LISTENING = 15
 
-    volatile integer _TYPE_RS232 = 1
-    volatile integer _TYPE_IP    = 2
+    integer _TYPE_RS232 = 1
+    integer _TYPE_IP    = 2
 
-    volatile long    _TLID = 1
+    long    _TLID = 1
 
-    volatile integer _ST_FREE           = 1   // Free to send commands to the device
-    volatile integer _ST_WAIT_RESPONSE  = 2   // Waiting for a response from a device to a command
-    volatile integer _ST_WAIT_EXECUTION = 3   // Waiting for an aditional time to execute (when there is no feedback)
-    volatile integer _ST_WAIT_STATUS    = 4   // Waiting for a response from a device to a pulling status
+    integer _ST_FREE           = 1   // Free to send commands to the device
+    integer _ST_WAIT_RESPONSE  = 2   // Waiting for a response from a device to a command
+    integer _ST_WAIT_EXECUTION = 3   // Waiting for an aditional time to execute (when there is no feedback)
+    integer _ST_WAIT_STATUS    = 4   // Waiting for a response from a device to a pulling status
 
-    volatile integer _BUFFER_LONG       = 64  // Response maximum size
-    volatile integer _QUEUE_ITEM_LONG   = 32  // Command maximum size
-    volatile integer _QUEUE_LONG        = 32  // Qeue size
-    volatile integer _TIMEOUT           = 3   // Maximum response time to a command
-    volatile integer _DEFAULT_TEXE      = 1   // Default execution time to a command
-    volatile integer _TIME_POLL_STATUS  = 20  // Time between pulling commands
+    integer _BUFFER_LONG       = 64  // Response maximum size
+    integer _QUEUE_ITEM_LONG   = 32  // Command maximum size
+    integer _QUEUE_LONG        = 32  // Qeue size
+    integer _TIMEOUT           = 3   // Maximum response time to a command
+    integer _DEFAULT_TEXE      = 1   // Default execution time to a command
+    integer _TIME_POLL_STATUS  = 20  // Time between pulling commands
 
     #warn '*** Uncomment if we are controlling a projector'
-    //volatile integer _TIME_WARMING = 300
-    //volatile integer _TIME_COOLING = 300
+    //integer _TIME_WARMING = 300
+    //integer _TIME_COOLING = 300
 
     #warn '*** Add here the command list and the index constant'
-    volatile integer _CMD_POWER_ON  = 1
-    volatile integer _CMD_POWER_OFF = 2
+    integer _CMD_POWER_ON  = 1
+    integer _CMD_POWER_OFF = 2
     // Etc
 
-    volatile char _COMMANDS[][32] = {'',
+    char _COMMANDS[][32] = {'',
 				     ''} // Etc
 
     #IF_DEFINED __PULLING__
-	    #warn '*** Add here the pulling command list'
-	    volatile char _PULLING[][32] = {'',
-					    ''} // Etc
+	#warn '*** Add here the pulling command list'
+	char _PULLING[][32] = {'',
+			       ''} // Etc
     #END_IF
 
 DEFINE_TYPE
@@ -107,11 +111,11 @@ DEFINE_VARIABLE
     persistent char sIPAddress[16] = '192.168.1.1'
     persistent char sBaudRate[6] = '9600'
 
-    volatile sinteger snHandler = -1
     persistent integer nDebugLevel = 1
 
     volatile _uStatus uStatus
 
+    volatile sinteger snHandler = -1
 
 DEFINE_START
 
@@ -351,28 +355,45 @@ DEFINE_START
 
 DEFINE_EVENT
 
-    channel_event[vdvDevice,POWER]
+    channel_event[vdvDevice,0]
     {
 	on:
 	{
-	    if([vdvDevice,POWER_FB]) {fnPower(false)}
-	    else	             {fnPower(true)}
-	}
-    }
-
-    channel_event[vdvDevice,PIC_MUTE]
-    {
-	on:
-	{
-	    if([vdvDevice,PIC_MUTE_FB]) 
+	    switch(channel.channel)
 	    {
-		// Video unmute
+		case POWER:
+		{
+		    if([vdvDevice,POWER_FB]) {fnPower(false)}
+		    else	             {fnPower(true)}		
+		}
+		case PWR_ON:
+		{
+		    fnPower(true)
+		}
+		case PWR_OFF:
+		{
+		    fnPower(false)
+		}
+		case PIC_MUTE:
+		{
+		    if([vdvDevice,PIC_MUTE_FB]) 
+		    {
+			// Video unmute
+		    }
+		    else								 
+		    {
+			// Video mute
+		    }
+		    off[vdvDevice,PIC_MUTE]		
+		}
+		case MENU_FUNC:	{}
+		case MENU_UP:	{}
+		case MENU_DN:	{}
+		case MENU_LT:	{}
+		case MENU_RT:	{}
 	    }
-	    else								 
-	    {
-		// Video mute
-	    }
-	    off[vdvDevice,PIC_MUTE]
+	    
+	    off[channel.device,channel.channel]
 	}
     }
 
@@ -385,64 +406,6 @@ DEFINE_EVENT
 	off:
 	{
 	    // Video unmute
-	}
-    }
-
-    channel_event[vdvDevice,MENU_FUNC]
-    {
-	on:
-	{
-	    off[vdvDevice,MENU_FUNC]
-	}
-    }
-
-    channel_event[vdvDevice,MENU_UP]
-    {
-	on:
-	{
-	    off[vdvDevice,MENU_UP]
-	}
-    }
-
-    channel_event[vdvDevice,MENU_DN]
-    {
-	on:
-	{
-	    off[vdvDevice,MENU_DN]
-	}	
-    }	
-
-    channel_event[vdvDevice,MENU_LT]
-    {
-	on:
-	{
-	    off[vdvDevice,MENU_LT]
-	}
-    }
-
-    channel_event[vdvDevice,MENU_RT]
-    {
-	on:
-	{
-	    off[vdvDevice,MENU_RT]
-	}
-    }
-
-    channel_event[vdvDevice,PWR_ON]
-    {
-	on:
-	{
-	    fnPower(true)
-	    off[vdvDevice,PWR_ON]
-	}
-    }
-
-    channel_event[vdvDevice,PWR_OFF]
-    {
-	on:
-	{
-	    fnPower(false)
-	    off[vdvDevice,PWR_OFF]
 	}
     }
 
@@ -534,12 +497,16 @@ DEFINE_EVENT
 		send_command dvDevice,"'SET BAUD ',sBaudRate,',N,8,1 485 DISABLE'"
 		send_command dvDevice,'HSOFF'
 	    }
+	    else if(nControlType == _TYPE_IP)
+	    {
+		on[data.device,DEVICE_COMMUNICATING]
+	    }
 	}
 	offline:
 	{
 	    if(nControlType == _TYPE_IP)
 	    {
-		snHandler = -1
+		off[data.device,DEVICE_COMMUNICATING]
 	    }
 	}
 	onerror:
@@ -548,7 +515,7 @@ DEFINE_EVENT
 	    {
 		if(data.number != _PORT_ALREADY_IN_USE && data.number != _SOCKET_ALREADY_LISTENING)
 		{
-		    snHandler = -1
+		    off[data.device,DEVICE_COMMUNICATING]
 		}
 		
 		if(nDebugLevel == 4)
@@ -581,6 +548,6 @@ DEFINE_EVENT
 	fnFeedback()
     }
 
-(**********************************************************)
-(********************   EARPRO 2019    ********************)
-(**********************************************************) 
+(***********************************************************)
+(*		    	EARPRO 2019   			   *)
+(***********************************************************) 
