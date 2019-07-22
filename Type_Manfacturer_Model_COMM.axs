@@ -1,8 +1,8 @@
 (***********************************************************)
-(*  FILE_LAST_MODIFIED_ON: 07/16/2019  AT: 13:47:43        *)
+(*  FILE_LAST_MODIFIED_ON: 07/22/2019  AT: 09:25:38        *)
 (***********************************************************)
 
-MODULE_NAME='Type_Manfacturer_Model_COMM' (dev vdvDevice,
+MODULE_NAME='Type_Manfacturer_Model_COMM' (dev vdvDeviceToTranslate,
 					   dev dvDevice)
 
 (*
@@ -18,13 +18,14 @@ MODULE_NAME='Type_Manfacturer_Model_COMM' (dev vdvDevice,
 
 *)
 
-    #include 'EarAPI'
-    #include 'SNAPI'
-
     #warn '*** Comment this define statement if it´s an unidirectional communication and there is no feedback from the unit'
     #DEFINE __BIDIRECTIONAL__
     #warn '*** Comment this define statement if there is no pulling status'
     #DEFINE __PULLING__
+
+DEFINE_DEVICE
+
+    vdvDevice = DYNAMIC_VIRTUAL_DEVICE
 
 DEFINE_CONSTANT
 
@@ -34,7 +35,9 @@ DEFINE_CONSTANT
     integer _TYPE_RS232 = 1
     integer _TYPE_IP    = 2
 
+    // Timeline parameters
     long    _TLID = 1
+    long lTimes[] = {200} // Update feedback every .20 sec
 
     integer _ST_FREE           = 1   // Free to send commands to the device
     integer _ST_WAIT_RESPONSE  = 2   // Waiting for a response from a device to a command
@@ -66,6 +69,9 @@ DEFINE_CONSTANT
 			       ''} // Etc
     #END_IF
 
+    // Define the number of key/values you want to store
+    integer TOTAL_KEY_COUNT = 5
+
 DEFINE_TYPE
 
     structure _uStatus
@@ -93,9 +99,11 @@ DEFINE_TYPE
 	_uQueueCommand uLast
     }
 
-DEFINE_VARIABLE
+    #include 'EarAPI'
+    #include 'SNAPI'
+    #include 'KeyValue'
 
-    volatile long lTimes[1] = 200 // Update feedback every .20 sec
+DEFINE_VARIABLE
 
     volatile integer  nModuleStatus = _ST_FREE
     volatile _uQueue  uQueue
@@ -108,17 +116,18 @@ DEFINE_VARIABLE
     #warn '*** If the control type is IP, define here the port of the device to control'
     persistent long nIpPort = 1234
 
+    #warn '*** Define default values for these parameters'
     persistent char sIPAddress[16] = '192.168.1.1'
-    persistent char sBaudRate[6] = '9600'
+    persistent char sBaudRate[16] = '9600'
 
     persistent integer nDebugLevel = 1
 
     volatile _uStatus uStatus
-
-    volatile sinteger snHandler = -1
+    persistent _uKeys uKeys
 
 DEFINE_START
 
+    translate_device(vdvDeviceToTranslate,vdvDevice)
     create_buffer dvDevice,sBuffer
 
     Timeline_Create(_TLID,lTimes,1,Timeline_Relative,Timeline_Repeat)
@@ -136,6 +145,8 @@ DEFINE_START
     {
 	stack_var _uQueueCommand newCommand
 	newCommand.sData = "''"
+	
+	fnInfo("'Input: ',sType,' Num: ',itoa(nInput)")
 	
 	fnQueuePush(newCommand)
     }
@@ -237,7 +248,7 @@ DEFINE_START
 
     define_function fnConnect()
     {
-	snHandler = ip_client_open(dvDevice.PORT,"sIPAddress",nIPPort,1)
+	ip_client_open(dvDevice.PORT,"sIPAddress",nIPPort,1)
     }
 
     define_function fnQueueClear()
@@ -307,8 +318,8 @@ DEFINE_START
 	}
 	if(nControlType == _TYPE_IP)
 	{
-	    ip_client_close(dvDevice.PORT)	
-	    snHandler = -1
+	    off[dvDevice,DEVICE_COMMUNICATING]
+	    //ip_client_close(dvDevice.PORT)
 	}	
     }
 
@@ -350,7 +361,7 @@ DEFINE_START
 
     define_function fnFeedback()
     {
-	#warn 'inserte aquí feedback si fuera necesario'
+	#warn '*** Insert feedback if neccessary'
     }
 
 DEFINE_EVENT
@@ -416,73 +427,70 @@ DEFINE_EVENT
 	    fnResetModule()
 	}
 	command:
-	{
-	    local_var char sData[64]
-	    local_var char cCmd
+	{ 
+	    stack_var char sCmd[DUET_MAX_CMD_LEN]
+	    stack_var char sHeader[DUET_MAX_HDR_LEN]
+	    stack_var char sParam[DUET_MAX_PARAM_LEN]
+	    sCmd = data.text
+	    sHeader = DuetParseCmdHeader(sCmd)
+	    sParam = DuetParseCmdParam(sCmd)
 	    
-	    sData = data.text
+	    fnInfo("'sHeader: ',sHeader,' sParam: ',sParam")
 	    
-	    select
+	    switch(sHeader)
 	    {
-		active(find_string(sData,'?DEBUG',1)):
+		case '?DEBUG':
 		{
-		    fnDebug("'DEBUG-',itoa(nDebugLevel)")
+		    fnInfo("'DEBUG-',itoa(nDebugLevel)")
 		}
-		active(find_string(sData,'DEBUG-',1)):
+		case 'DEBUG':
 		{
-		    remove_string(sData,'DEBUG-',1)
-		    nDebugLevel = atoi("sData")
+		    nDebugLevel = atoi("sParam")
 		}
-		active(find_string(sData,'PROPERTY-IP_Address,',1)):
-		{
-		    remove_string(sData,'PROPERTY-IP_Address,',1)
-		    if(length_string(sData))
-		    {
-			sIPAddress = sData
-			nControlType = _TYPE_IP
-		    }
-		}
-		active(find_string(sData,'PROPERTY-Port,',1)):
-		{
-		    remove_string(sData,'PROPERTY-Port,',1)
-		    if(length_string(sData))
-		    {
-			nIpPort = atoi("sData")
-			nControlType = _TYPE_IP
-		    }
-		}			
-		active(find_string(sData,'PROPERTY-Baud_Rate,',1)):
-		{
-		    remove_string(sData,'PROPERTY-Baud_Rate,',1)
-		    if(length_string(sData))
-		    {
-			snHandler = 0
-			sBaudRate = sData					
-			nControlType = _TYPE_RS232
-		    }			
-		}
-		active(find_string(sData,'PASSTHRU-',1)):
-		{
-		    stack_var _uQueueCommand newElement
-		    remove_string(sData,'PASSTHRU-',1)
-		    newElement.sData = sData
-		    fnQueuePush(newElement)
-		    //send_string dvDevice,"sData"
-		}
-		active(find_string(sData,'REINIT',1)):
+		case 'REINIT':
 		{
 		    fnResetModule()
-		}		
-		active(find_string(sData,'INPUT-',1)):
+		}
+		case 'PROPERTY':
 		{
-		    stack_var integer nComma
-		    stack_var char sType[32]
+		    switch(sParam)
+		    {
+			case 'IP_Address':
+			{
+			    sIPAddress = DuetParseCmdParam(sCmd)
+			    nControlType = _TYPE_IP
+			    fnInfo("'Setting IP Address to: ',sIPAddress")
+			}
+			case 'Port':
+			{
+			    stack_var char sPort[16]
+			    sPort = DuetParseCmdParam(sCmd)
+			    nIpPort = atoi(sPort)
+			    nControlType = _TYPE_IP
+			    fnInfo("'Setting IP port to: ',itoa(nIpPort)")
+			}
+			case 'Baud_Rate':
+			{
+			    sBaudRate = DuetParseCmdParam(sCmd)					
+			    fnInfo("'Setting Baud Rate to: ',sBaudRate")
+			    nControlType = _TYPE_RS232
+			    fnResetModule()
+			}
+		    }
+		}
+		case 'INPUT':
+		{
+		    stack_var char sInput[4]
 		    stack_var integer nInput
-		    remove_string(sData,'INPUT-',1)
-		    nComma = find_string(sData,',',1)
-		    sType = get_buffer_string(sData,nComma-1)
-		    nInput = atoi("sData")
-		    fnInput(sType,nInput)
+		    sInput = DuetParseCmdParam(sCmd)
+		    nInput = atoi("sInput")
+		    fnInput(sParam,nInput)
+		}
+		case 'PASSTHRU':
+		{
+		    stack_var _uQueueCommand newElement
+		    newElement.sData = DuetParseCmdParam(sCmd)
+		    fnQueuePush(newElement)
 		}
 	    }
 	}
@@ -520,13 +528,13 @@ DEFINE_EVENT
 		
 		if(nDebugLevel == 4)
 		{
-		    fnDebug("itoa(dvDevice.number),': -> ',fnGetIPErrorDescription(data.number)")
+		    fnDebug("'-->> ',fnGetIPErrorDescription(data.number)")
 		}
 	    }		
 	}
 	string:
 	{
-	    if(nDebugLevel == 4) {fnDebug("itoa(dvDevice.number),': <- ',data.text")}
+	    if(nDebugLevel == 4) {fnDebug("'<<-- ',data.text")}
 	    fnProcessBuffer()
 	}
     }
@@ -537,7 +545,7 @@ DEFINE_EVENT
 	{
 	    wait 50 'reconnect'
 	    {
-		if(snHandler < 0)
+		if(![dvDevice,DEVICE_COMMUNICATING])
 		{
 		    fnConnect()
 		}
