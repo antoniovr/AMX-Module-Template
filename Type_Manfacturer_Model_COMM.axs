@@ -1,12 +1,11 @@
 (***********************************************************)
-(*  FILE_LAST_MODIFIED_ON: 07/22/2019  AT: 09:25:38        *)
+(*  FILE_LAST_MODIFIED_ON: 09/11/2019  AT: 09:53:56        *)
 (***********************************************************)
 
 MODULE_NAME='Type_Manfacturer_Model_COMM' (dev vdvDeviceToTranslate,
 					   dev dvDevice)
 
 (*
-    EARPRO 2019
     Type:
     Manufacturer:
     Model:
@@ -99,7 +98,7 @@ DEFINE_TYPE
 	_uQueueCommand uLast
     }
 
-    #include 'EarAPI'
+    #include 'CUSTOMAPI'
     #include 'SNAPI'
     #include 'KeyValue'
 
@@ -130,7 +129,7 @@ DEFINE_START
     translate_device(vdvDeviceToTranslate,vdvDevice)
     create_buffer dvDevice,sBuffer
 
-    Timeline_Create(_TLID,lTimes,1,Timeline_Relative,Timeline_Repeat)
+    timeline_create(_TLID,lTimes,1,TIMELINE_RELATIVE,TIMELINE_REPEAT)
 
     define_function fnPower(integer bPower)
     {
@@ -557,5 +556,5 @@ DEFINE_EVENT
     }
 
 (***********************************************************)
-(*		    	EARPRO 2019   			   *)
+(*		    	END OF PROGRAM			   *)
 (***********************************************************) 
