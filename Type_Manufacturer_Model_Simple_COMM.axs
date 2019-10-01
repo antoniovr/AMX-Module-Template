@@ -1,9 +1,9 @@
-﻿MODULE_NAME='Type_Manufacturer_Model_Simple_COMM' (dev vdvDev,dev dvDevice)
+﻿MODULE_NAME='Type_Manufacturer_Model_Simple_COMM' (dev vdvDeviceToTranslate,dev dvDevice)
 (***********************************************************)
 (*  FILE CREATED ON: 07/22/2019  AT: 09:13:31              *)
 (***********************************************************)
 (***********************************************************)
-(*  FILE_LAST_MODIFIED_ON: 09/11/2019  AT: 09:54:20        *)
+(*  FILE_LAST_MODIFIED_ON: 09/21/2019  AT: 14:39:43        *)
 (***********************************************************)
 
 #include 'SNAPI'
@@ -23,6 +23,9 @@ DEFINE_CONSTANT
     
     integer _TYPE_IP  = 1
     integer _TYPE_RS232 = 2
+    
+    integer _PORT_ALREADY_IN_USE  = 14
+    integer _SOCKET_ALREADY_LISTENING = 15
 
 (***********************************************************)
 (*               VARIABLE DEFINITIONS GO BELOW             *)
@@ -44,7 +47,7 @@ DEFINE_VARIABLE
 (***********************************************************)
 DEFINE_START
 
-    translate_device(vdvDev,vdvDevice)
+    translate_device(vdvDeviceToTranslate,vdvDevice)
     timeline_create(_TLID,lTimes,1,TIMELINE_RELATIVE,TIMELINE_REPEAT)
     
     define_function fnResetModule()
@@ -73,12 +76,53 @@ DEFINE_START
     define_function fnPower(integer bPower)
     {
 	fnInfo("'fnPower(',itoa(bPower),')'")
+	if(bPower) {send_string dvDevice,"''"}
+	else 	   {send_string dvDevice,"''"}
     }
     
     define_function fnInput(char sType[],integer nNum)
     {
 	fnInfo("'fnInput(',sType,',',itoa(nNum),')'")
+	send_string dvDevice,"''"
     }
+    
+    define_function fnProcessBuffer()
+    {
+	local_var sPacket[255]
+	while (fnTakePacket(sPacket)) {fnProcessPacket(sPacket)}
+    }  
+
+    define_function integer fnTakePacket(char sPacket[])
+    {
+	stack_var integer r
+	r = false
+	#warn '*** Insert here the code to extract the command from sBuffer'
+	
+	return r (* It would return TRUE if successfuly took the command from the buffer. *)
+    }
+
+    define_function fnProcessPacket(char sPacket[])
+    {
+	#warn '*** Insert the code to interpret the answer'
+	(*
+	select
+	{
+	    active(find_string(sPacket,'something',1)):
+	    {
+	    
+	    }
+	}
+	*)
+	
+	#warn '*** Depending on the answer, activate the feedback channels in the virtual device'
+	
+	(*
+	[vdvDevice,	POWER_FB]
+	[vdvDevice,LAMP_COOLING_FB]
+	[vdvDevice,LAMP_WARMING_FB]
+	[..]
+	*)
+    }    
 
 (***********************************************************)
 (*                THE EVENTS GO BELOW                      *)
@@ -206,6 +250,26 @@ DEFINE_EVENT
 	offline:
 	{
 	    off[vdvDevice,DEVICE_COMMUNICATING]
+	}
+	onerror:
+	{
+	    if(nControlType == _TYPE_IP)
+	    {
+		if(data.number != _PORT_ALREADY_IN_USE && data.number != _SOCKET_ALREADY_LISTENING)
+		{
+		    off[data.device,DEVICE_COMMUNICATING]
+		}
+		
+		if(nDebugLevel == 4)
+		{
+		    fnInfo("'-->> ',fnGetIPErrorDescription(data.number)")
+		}
+	    }		
+	}
+	string:
+	{
+	    if(nDebugLevel == 4) {fnInfo("'<<-- ',data.text")}
+	    fnProcessBuffer()
 	}
     }
 

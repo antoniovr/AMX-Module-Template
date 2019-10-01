@@ -1,5 +1,5 @@
 (***********************************************************)
-(*  FILE_LAST_MODIFIED_ON: 09/11/2019  AT: 09:53:56        *)
+(*  FILE_LAST_MODIFIED_ON: 09/28/2019  AT: 11:05:58        *)
 (***********************************************************)
 
 MODULE_NAME='Type_Manfacturer_Model_COMM' (dev vdvDeviceToTranslate,
@@ -170,7 +170,7 @@ DEFINE_START
 		cancel_wait 'wait poll status'
 		
 		(* Send the command *)
-		if(nDebugLevel == 4) {fnDebug("itoa(dvDevice.number),': -> ',uCommandToSend.sData")}
+		if(nDebugLevel == 4) {fnInfo("fnDeviceToString(dvDevice),': -> ',uCommandToSend.sData")}
 		send_string dvDevice,"uCommandToSend.sData"
 		
 		#IF_DEFINED __BIDIRECTIONAL__
@@ -396,11 +396,26 @@ DEFINE_EVENT
 		    }
 		    off[vdvDevice,PIC_MUTE]		
 		}
-		case MENU_FUNC:	{}
-		case MENU_UP:	{}
-		case MENU_DN:	{}
-		case MENU_LT:	{}
-		case MENU_RT:	{}
+		case PLAY: 	  {}
+		case STOP: 	  {}
+		case PAUSE:       {}
+		case RECORD:      {}
+		case REW: 	  {}
+		case FFWD: 	  {}
+		case SREV:  	  {}
+		case SFWD: 	  {}
+		case MENU_UP:	  {}
+		case MENU_DN:	  {}
+		case MENU_LT:	  {}
+		case MENU_RT:	  {}
+		case MENU_SELECT: {}
+		case MENU_SETUP:  {}
+		case MENU_ENTER:  {}
+		case MENU_RETURN: {}
+		
+		// Videoconference
+		case MENU_ACCEPT: {}
+		case MENU_REJECT: {}
 	    }
 	    
 	    off[channel.device,channel.channel]
@@ -491,6 +506,23 @@ DEFINE_EVENT
 		    newElement.sData = DuetParseCmdParam(sCmd)
 		    fnQueuePush(newElement)
 		}
+		default:
+		{
+		    if(find_string(sHeader,'CI',1)) // Switcher command
+		    {
+			stack_var char sInput[4]
+			stack_var char sOutput[4]
+			stack_var integer nInput
+			stack_var integer nOutput
+			sInput = remove_string(sHeader,'O',1)
+			nInput = atoi(sInput)
+			sOutput = sHeader
+			nOutput = atoi(sOutput)
+			fnInfo("'COMM sInput vale: ',sInput")
+			fnInfo("'COMM sOutput vale: ',sOutput")
+			fnSwitch(nInput,nOutput,0)
+		    }
+		}
 	    }
 	}
     }
@@ -527,13 +559,13 @@ DEFINE_EVENT
 		
 		if(nDebugLevel == 4)
 		{
-		    fnDebug("'-->> ',fnGetIPErrorDescription(data.number)")
+		    fnInfo("'-->> ',fnGetIPErrorDescription(data.number)")
 		}
 	    }		
 	}
 	string:
 	{
-	    if(nDebugLevel == 4) {fnDebug("'<<-- ',data.text")}
+	    if(nDebugLevel == 4) {fnInfo("'<<-- ',data.text")}
 	    fnProcessBuffer()
 	}
     }
