@@ -3,7 +3,7 @@
 (*  FILE CREATED ON: 07/22/2019  AT: 09:13:31              *)
 (***********************************************************)
 (***********************************************************)
-(*  FILE_LAST_MODIFIED_ON: 09/21/2019  AT: 14:39:43        *)
+(*  FILE_LAST_MODIFIED_ON: 11/11/2019  AT: 13:16:56        *)
 (***********************************************************)
 
 #include 'SNAPI'
@@ -235,7 +235,7 @@ DEFINE_EVENT
 		}
 		case 'PASSTHRU':
 		{
-		    send_string dvDevice,"DuetParseCmdParam(sCmd)"
+		    send_string dvDevice,"sParam"
 		}
 	    }
 	}

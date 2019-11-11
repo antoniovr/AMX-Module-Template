@@ -1,5 +1,5 @@
 (***********************************************************)
-(*  FILE_LAST_MODIFIED_ON: 09/28/2019  AT: 11:05:58        *)
+(*  FILE_LAST_MODIFIED_ON: 11/11/2019  AT: 13:15:37        *)
 (***********************************************************)
 
 MODULE_NAME='Type_Manfacturer_Model_COMM' (dev vdvDeviceToTranslate,
@@ -170,7 +170,7 @@ DEFINE_START
 		cancel_wait 'wait poll status'
 		
 		(* Send the command *)
-		if(nDebugLevel == 4) {fnInfo("fnDeviceToString(dvDevice),': -> ',uCommandToSend.sData")}
+		if(nDebugLevel == 4) {fnInfo("'-->> ',uCommandToSend.sData")}
 		send_string dvDevice,"uCommandToSend.sData"
 		
 		#IF_DEFINED __BIDIRECTIONAL__
@@ -503,7 +503,7 @@ DEFINE_EVENT
 		case 'PASSTHRU':
 		{
 		    stack_var _uQueueCommand newElement
-		    newElement.sData = DuetParseCmdParam(sCmd)
+		    newElement.sData = sParam
 		    fnQueuePush(newElement)
 		}
 		default:
