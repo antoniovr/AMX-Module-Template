@@ -1,5 +1,5 @@
 (***********************************************************)
-(*  FILE_LAST_MODIFIED_ON: 11/11/2019  AT: 13:15:37        *)
+(*  FILE_LAST_MODIFIED_ON: 11/23/2019  AT: 20:24:17        *)
 (***********************************************************)
 
 MODULE_NAME='Type_Manfacturer_Model_COMM' (dev vdvDeviceToTranslate,
@@ -299,6 +299,12 @@ DEFINE_START
 	return bExtractOK
     }
 
+    define_function fnQueueCmd(char sCmd[])
+    {
+	stack_var _uQueueCommand newElement
+	newElement.sData = "sCmd"
+	fnQueuePush(newElement)
+    }
 
     define_function fnResetModule()
     {
