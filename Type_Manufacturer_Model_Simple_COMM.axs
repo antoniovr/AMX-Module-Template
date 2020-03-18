@@ -3,7 +3,7 @@
 (*  FILE CREATED ON: 07/22/2019  AT: 09:13:31              *)
 (***********************************************************)
 (***********************************************************)
-(*  FILE_LAST_MODIFIED_ON: 11/11/2019  AT: 13:16:56        *)
+(*  FILE_LAST_MODIFIED_ON: 03/17/2020  AT: 16:12:39        *)
 (***********************************************************)
 
 #include 'SNAPI'
@@ -235,6 +235,7 @@ DEFINE_EVENT
 		}
 		case 'PASSTHRU':
 		{
+		    if(nDebugLevel == 4) {fnInfo("'PASSTHRU -->> ',sParam")}
 		    send_string dvDevice,"sParam"
 		}
 	    }

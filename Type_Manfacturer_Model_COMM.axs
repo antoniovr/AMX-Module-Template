@@ -1,5 +1,5 @@
 (***********************************************************)
-(*  FILE_LAST_MODIFIED_ON: 11/23/2019  AT: 20:24:17        *)
+(*  FILE_LAST_MODIFIED_ON: 03/17/2020  AT: 16:09:23        *)
 (***********************************************************)
 
 MODULE_NAME='Type_Manfacturer_Model_COMM' (dev vdvDeviceToTranslate,
@@ -150,10 +150,24 @@ DEFINE_START
 	fnQueuePush(newCommand)
     }
 
-    define_function fnSwitch(integer nIn,integer nOut,integer nLevel)
+    define_function fnSwitch(integer nIn,integer nOut,char sLevel[])
     {
 	stack_var _uQueueCommand newCommand
-	newCommand.sData = "''"
+	switch(sLevel)
+	{
+	    case 'All':
+	    {
+		newCommand.sData = "''"	    
+	    }
+	    case 'Vid':
+	    {
+		newCommand.sData = "''"
+	    }
+	    case 'Aud':
+	    {
+		newCommand.sData = "''"
+	    }
+	}
 
 	fnQueuePush(newCommand)
     }
@@ -190,6 +204,7 @@ DEFINE_START
 		wait _TIME_POLL_STATUS 'wait poll status'
 		{
 		    #IF_DEFINED __PULLING__
+			if(nDebugLevel == 4) {fnInfo("'-->> ',_PULLING[nPullingCount]")}
 			send_string dvDevice,"_PULLING[nPullingCount]"
 			nPullingCount ++
 			if(nPullingCount > max_length_array(_PULLING))
@@ -247,6 +262,7 @@ DEFINE_START
 
     define_function fnConnect()
     {
+	if(nDebugLevel == 4) {fnInfo('fnConnect()')}
 	ip_client_open(dvDevice.PORT,"sIPAddress",nIPPort,1)
     }
 
@@ -514,7 +530,7 @@ DEFINE_EVENT
 		}
 		default:
 		{
-		    if(find_string(sHeader,'CI',1)) // Switcher command
+		    if(find_string(sHeader,'CI',1)) // Switcher command ALL
 		    {
 			stack_var char sInput[4]
 			stack_var char sOutput[4]
@@ -524,10 +540,47 @@ DEFINE_EVENT
 			nInput = atoi(sInput)
 			sOutput = sHeader
 			nOutput = atoi(sOutput)
-			fnInfo("'COMM sInput vale: ',sInput")
-			fnInfo("'COMM sOutput vale: ',sOutput")
-			fnSwitch(nInput,nOutput,0)
+			if(nDebugLevel == 4) {fnInfo("'COMM nInput vale: ',itoa(nInput)")}
+			if(nDebugLevel == 4) {fnInfo("'COMM nOutput vale: ',itoa(nOutput)")}
+			if(nInput) // Contidional used only when using 0 for unrouting isn't valid
+			{
+			    fnSwitch(nInput,nOutput,'All')
+			}
 		    }
+		    else if(find_string(sHeader,'VI',1)) // Switcher command VIDEO
+		    {
+			stack_var char sInput[4]
+			stack_var char sOutput[4]
+			stack_var integer nInput
+			stack_var integer nOutput
+			sInput = remove_string(sHeader,'O',1)
+			nInput = atoi(sInput)
+			sOutput = sHeader
+			nOutput = atoi(sOutput)
+			if(nDebugLevel == 4) {fnInfo("'COMM nInput vale: ',itoa(nInput)")}
+			if(nDebugLevel == 4) {fnInfo("'COMM nOutput vale: ',itoa(nOutput)")}
+			if(nInput) // Contidional used only when using 0 for unrouting isn't valid
+			{
+			    fnSwitch(nInput,nOutput,'Vid')
+			}
+		    }
+		    else if(find_string(sHeader,'AI',1)) // Switcher command AUDIO
+		    {
+			stack_var char sInput[4]
+			stack_var char sOutput[4]
+			stack_var integer nInput
+			stack_var integer nOutput
+			sInput = remove_string(sHeader,'O',1)
+			nInput = atoi(sInput)
+			sOutput = sHeader
+			nOutput = atoi(sOutput)
+			if(nDebugLevel == 4) {fnInfo("'COMM nInput vale: ',itoa(nInput)")}
+			if(nDebugLevel == 4) {fnInfo("'COMM nOutput vale: ',itoa(nOutput)")}
+			if(nInput) // Contidional used only when using 0 for unrouting isn't valid
+			{
+			    fnSwitch(nInput,nOutput,'Aud')
+			}
+		    }		    		
 		}
 	    }
 	}
@@ -580,13 +633,16 @@ DEFINE_EVENT
     {
 	if(nControlType == _TYPE_IP)
 	{
-	    wait 50 'reconnect'
+	    if(![vdvDevice,SIMULATED_FB])
 	    {
-		if(![dvDevice,DEVICE_COMMUNICATING])
+		wait 50 'reconnect'
 		{
-		    fnConnect()
+		    if(![dvDevice,DEVICE_COMMUNICATING])
+		    {
+			fnConnect()
+		    }
 		}
-	    }		
+	    }
 	}
 	
 	fnMainLine()
