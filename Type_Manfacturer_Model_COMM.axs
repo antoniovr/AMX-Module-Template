@@ -1,5 +1,5 @@
 (***********************************************************)
-(*  FILE_LAST_MODIFIED_ON: 03/17/2020  AT: 16:09:23        *)
+(*  FILE_LAST_MODIFIED_ON: 08/20/2020  AT: 11:24:28        *)
 (***********************************************************)
 
 MODULE_NAME='Type_Manfacturer_Model_COMM' (dev vdvDeviceToTranslate,
@@ -633,14 +633,11 @@ DEFINE_EVENT
     {
 	if(nControlType == _TYPE_IP)
 	{
-	    if(![vdvDevice,SIMULATED_FB])
+	    wait 50 'reconnect'
 	    {
-		wait 50 'reconnect'
+		if(![dvDevice,DEVICE_COMMUNICATING])
 		{
-		    if(![dvDevice,DEVICE_COMMUNICATING])
-		    {
-			fnConnect()
-		    }
+		    fnConnect()
 		}
 	    }
 	}

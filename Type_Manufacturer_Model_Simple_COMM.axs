@@ -3,7 +3,7 @@
 (*  FILE CREATED ON: 07/22/2019  AT: 09:13:31              *)
 (***********************************************************)
 (***********************************************************)
-(*  FILE_LAST_MODIFIED_ON: 03/17/2020  AT: 16:12:39        *)
+(*  FILE_LAST_MODIFIED_ON: 08/20/2020  AT: 11:25:31        *)
 (***********************************************************)
 
 #include 'SNAPI'
@@ -276,9 +276,15 @@ DEFINE_EVENT
 
     timeline_event[_TLID]
     {
-	if(nControlType == _TYPE_IP && ![vdvDevice,DEVICE_COMMUNICATING])
+	if(nControlType == _TYPE_IP)
 	{
-	    fnConnect()
+	    wait 50 'reconnect'
+	    {
+		if(![vdvDevice,DEVICE_COMMUNICATING])
+		{
+		    fnConnect()
+		}
+	    }
 	}
     }
 
