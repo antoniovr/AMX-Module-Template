@@ -1,5 +1,5 @@
 (***********************************************************)
-(*  FILE_LAST_MODIFIED_ON: 08/21/2020  AT: 12:26:43        *)
+(*  FILE_LAST_MODIFIED_ON: 03/15/2021  AT: 08:12:12        *)
 (***********************************************************)
 
 MODULE_NAME='Type_Manfacturer_Model_COMM' (dev vdvDeviceToTranslate,
@@ -75,27 +75,27 @@ DEFINE_TYPE
 
     structure _uStatus
     {
-		integer bOn
-		char	sInputType[16]
-		integer nInputNumber
-			
-		#warn '*** Uncomment if we are controlling a projector'	
-		//integer bWarming
-		//integer bCooling
+	integer bOn
+	char	sInputType[16]
+	integer nInputNumber
+		
+	#warn '*** Uncomment if we are controlling a projector'	
+	//integer bWarming
+	//integer bCooling
     }
 
     structure _uQueueCommand
     {
-		char    sData[_QUEUE_ITEM_LONG]
-		integer nTexe // Time to wait after executing the command
+	char    sData[_QUEUE_ITEM_LONG]
+	integer nTexe // Time to wait after executing the command
     }
 
     structure _uQueue
     {
-		integer nHead
-		integer nTail
-		_uQueueCommand auCommands[_Queue_LONG]
-		_uQueueCommand uLast
+	integer nHead
+	integer nTail
+	_uQueueCommand auCommands[_Queue_LONG]
+	_uQueueCommand uLast
     }
 
     #include 'CUSTOMAPI'
@@ -133,87 +133,87 @@ DEFINE_START
 
     define_function fnPower(integer bPower)
     {
-		stack_var _uQueueCommand newCommand
-		if(bPower) {newCommand.sData = "''"}
-		else	   {newCommand.sData = "''"}
-		
-		fnQueuePush(newCommand)
+	stack_var _uQueueCommand newCommand
+	if(bPower) {newCommand.sData = "''"}
+	else	   {newCommand.sData = "''"}
+	
+	fnQueuePush(newCommand)
     }
 
     define_function fnInput(char sType[],integer nInput)
     {
-		stack_var _uQueueCommand newCommand
-		newCommand.sData = "''"
-		
-		fnInfo("'Input: ',sType,' Num: ',itoa(nInput)")
-		
-		fnQueuePush(newCommand)
+	stack_var _uQueueCommand newCommand
+	newCommand.sData = "''"
+	
+	fnInfo("'Input: ',sType,' Num: ',itoa(nInput)")
+	
+	fnQueuePush(newCommand)
     }
 
     define_function fnSwitch(integer nIn,integer nOut,char sLevel[])
     {
-		stack_var _uQueueCommand newCommand
-		switch(sLevel)
-		{
-			case 'All':
-			{
-				newCommand.sData = "''"	    
-			}
-			case 'Vid':
-			{
-				newCommand.sData = "''"
-			}
-			case 'Aud':
-			{
-				newCommand.sData = "''"
-			}
-		}
+	stack_var _uQueueCommand newCommand
+	switch(sLevel)
+	{
+	    case 'All':
+	    {
+		newCommand.sData = "''"	    
+	    }
+	    case 'Vid':
+	    {
+		newCommand.sData = "''"
+	    }
+	    case 'Aud':
+	    {
+		newCommand.sData = "''"
+	    }
+	}
 
-		fnQueuePush(newCommand)
+	fnQueuePush(newCommand)
     }
 
     define_function fnMainLine()
     {
-		local_var _uQueueCommand uCommandToSend
+	local_var _uQueueCommand uCommandToSend
 
 	(* Free to send the next command or ask for status *)
 	if (nModuleStatus == _ST_FREE)
 	{
 	    if(fnQueuePop(uCommandToSend))
 	    {
-			cancel_wait 'wait poll status'
+		cancel_wait 'wait poll status'
 		
-			(* Send the command *)
-			if(nDebugLevel == 4) {fnInfo("'-->> ',uCommandToSend.sData")}
-			send_string dvDevice,"uCommandToSend.sData"
+		(* Send the command *)
+		if(nDebugLevel == 4) {fnInfo("'-->> ',uCommandToSend.sData")}
+		send_string dvDevice,"uCommandToSend.sData"
 		
-			#IF_DEFINED __BIDIRECTIONAL__
-			    nModuleStatus = _ST_WAIT_RESPONSE // Two ways communication
-			#ELSE
-			    nModuleStatus = _ST_WAIT_EXECUTION // One way communication
-			#END_IF
+		#IF_DEFINED __BIDIRECTIONAL__
+		    nModuleStatus = _ST_WAIT_RESPONSE // Two ways communication
+		#ELSE
+		    nModuleStatus = _ST_WAIT_EXECUTION // One way communication
+		#END_IF
 		
-			if([vdvDevice,SIMULATED_FB])
-			{
-			    sBuffer = "sBuffer,'OK',10,13"
-		    	wait 1 fnProcessBuffer()
-			}
+		if([vdvDevice,SIMULATED_FB])
+		{
+		    sBuffer = "sBuffer,'OK',10,13"
+		    wait 1 fnProcessBuffer()
+		}
 	    }
 	    else // If there is no command to send, we start pulling the device...
 	    {
-			wait _TIME_POLL_STATUS 'wait poll status'
+		wait _TIME_POLL_STATUS 'wait poll status'
+		{
+		    #IF_DEFINED __PULLING__
+			if(nDebugLevel == 4) {fnInfo("'-->> ',_PULLING[nPullingCount]")}
+			send_string dvDevice,"_PULLING[nPullingCount]"
+			nPullingCount ++
+			if(nPullingCount > max_length_array(_PULLING))
 			{
-			    #IF_DEFINED __PULLING__
-					if(nDebugLevel == 4) {fnInfo("'-->> ',_PULLING[nPullingCount]")}
-					send_string dvDevice,"_PULLING[nPullingCount]"
-					nPullingCount ++
-					if(nPullingCount > max_length_array(_PULLING))
-					{
-					    nPullingCount = 1
-					}
-					nModuleStatus = _ST_WAIT_STATUS				
-		    	#END_IF
+			    nPullingCount = 1
 			}
+			nModuleStatus = _ST_WAIT_STATUS				
+		    #END_IF
+		}
 	    }
 	}
 
@@ -221,26 +221,26 @@ DEFINE_START
 	    (* TWO WAYS COMMUNICATION: Timeout in case that we don�t get a response in time *)
 	    if(nModuleStatus == _ST_WAIT_RESPONSE)  
 	    {
-			wait _TIMEOUT 'wait response'
-			{
-			    nModuleStatus = _ST_FREE
-			}
+		wait _TIMEOUT 'wait response'
+		{
+		    nModuleStatus = _ST_FREE
+		}
 	    }
 	#ELSE
 	    (*ONE WAY COMMUNICATION: We block the module until the dessigned time has passed*)
 	    if(nModuleStatus == _ST_WAIT_EXECUTION) 
 	    {
-			if(uQueue.uLast.nTexe)
-			{
-				wait uQueue.uLast.nTexe 'wait execution'
-				{
-					nModuleStatus = _ST_FREE
-				}
-			}
-			else
-			{
-				nModuleStatus = _ST_FREE
-			}
+		if(uQueue.uLast.nTexe)
+		{
+		    wait uQueue.uLast.nTexe 'wait execution'
+		    {
+			nModuleStatus = _ST_FREE
+		    }
+		}
+		else
+		{
+		    nModuleStatus = _ST_FREE
+		}
 	    }
 	#END_IF
 
@@ -249,27 +249,27 @@ DEFINE_START
 	{
 	    wait _TIMEOUT 'wait response'
 	    {
-			nModuleStatus = _ST_FREE
+		nModuleStatus = _ST_FREE
 	    }
 	}
     }
 
     define_function fnProcessBuffer()
     {
-		local_var sPacket[255]
-		while (fnTakePacket(sPacket)) {fnProcessPacket(sPacket)}
+	local_var sPacket[255]
+	while (fnTakePacket(sPacket)) {fnProcessPacket(sPacket)}
     }
 
     define_function fnConnect()
     {
-		if(nDebugLevel == 4) {fnInfo('fnConnect()')}
-		ip_client_open(dvDevice.PORT,"sIPAddress",nIPPort,1)
+	if(nDebugLevel == 4) {fnInfo('fnConnect()')}
+	ip_client_open(dvDevice.PORT,"sIPAddress",nIPPort,1)
     }
 
     define_function fnQueueClear()
     {
-		uQueue.nHead = 1
-		uQueue.nTail = 1
+	uQueue.nHead = 1
+	uQueue.nTail = 1
     }
 
     define_function integer fnQueuePush(_uQueueCommand uNewCommand)
@@ -282,7 +282,7 @@ DEFINE_START
 	nHead ++
 	if (nHead > max_length_array(uQueue.auCommands))
 	{
-		nHead = 1
+	    nHead = 1
 	}
 	uQueue.nHead = nHead
 	
@@ -389,266 +389,266 @@ DEFINE_EVENT
 
     channel_event[vdvDevice,0]
     {
-		on:
+	on:
+	{
+	    switch(channel.channel)
+	    {
+		case POWER:
 		{
-			switch(channel.channel)
-			{
-			case POWER:
-			{
-				if([vdvDevice,POWER_FB]) {fnPower(false)}
-				else	             {fnPower(true)}		
-			}
-			case PWR_ON:
-			{
-				fnPower(true)
-			}
-			case PWR_OFF:
-			{
-				fnPower(false)
-			}
-			case PIC_MUTE:
-			{
-				if([vdvDevice,PIC_MUTE_FB]) 
-				{
-				// Video unmute
-				}
-				else								 
-				{
-				// Video mute
-				}
-				off[vdvDevice,PIC_MUTE]		
-			}
-			case PLAY: 	 	  {}
-			case STOP: 	 	  {}
-			case PAUSE:   	  {}
-			case RECORD:      {}
-			case REW: 	  	  {}
-			case FFWD: 	  	  {} 
-			case SREV:  	  {}
-			case SFWD: 	  	  {}
-			case MENU_UP:	  {}
-			case MENU_DN:	  {}
-			case MENU_LT:	  {}
-			case MENU_RT:	  {}
-			case MENU_SELECT: {}
-			case MENU_SETUP:  {}
-			case MENU_ENTER:  {}
-			case MENU_RETURN: {}
-			
-			// Videoconference
-			case MENU_ACCEPT: {}
-			case MENU_REJECT: {}
-			}
-			
-			off[channel.device,channel.channel]
+		    if([vdvDevice,POWER_FB]) {fnPower(false)}
+		    else	             {fnPower(true)}		
 		}
+	    case PWR_ON:
+	    {
+		fnPower(true)
+	    }
+	    case PWR_OFF:
+	    {
+		fnPower(false)
+	    }
+	    case PIC_MUTE:
+	    {
+		if([vdvDevice,PIC_MUTE_FB]) 
+		{
+		    // Video unmute
+		}
+		else								 
+		{
+		    // Video mute
+		}
+		off[vdvDevice,PIC_MUTE]		
+	    }
+	    case PLAY: {}
+	    case STOP: {}
+	    case PAUSE: {}
+	    case RECORD: {}
+	    case REW: {}
+	    case FFWD: {} 
+	    case SREV: {}
+	    case SFWD: {}
+	    case MENU_UP: {}
+	    case MENU_DN: {}
+	    case MENU_LT: {}
+	    case MENU_RT: {}
+	    case MENU_SELECT: {}
+	    case MENU_SETUP:  {}
+	    case MENU_ENTER:  {}
+	    case MENU_RETURN: {}
+	    
+	    // Videoconference
+	    case MENU_ACCEPT: {}
+	    case MENU_REJECT: {}
+	    }
+	    
+	    off[channel.device,channel.channel]
+	}
     }
 
     channel_event[vdvDevice,PIC_MUTE_ON]
     {
-		on:
-		{
-			// Video mute
-		}
-		off:
-		{
-			// Video unmute
-		}
+	on:
+	{
+	    // Video mute
+	}
+	off:
+	{
+	    // Video unmute
+	}
     }
 
     data_event[vdvDevice]
     {
-		online:
+	online:
+	{
+	    fnResetModule()
+	}
+	command:
+	{ 
+	    stack_var char sCmd[DUET_MAX_CMD_LEN]
+	    stack_var char sHeader[DUET_MAX_HDR_LEN]
+	    stack_var char sParam[DUET_MAX_PARAM_LEN]
+	    sCmd = data.text
+	    sHeader = DuetParseCmdHeader(sCmd)
+	    sParam = DuetParseCmdParam(sCmd)
+	    
+	    fnInfo("'sHeader: ',sHeader,' sParam: ',sParam")
+	    
+	    switch(sHeader)
+	    {
+		case '?DEBUG':
 		{
-			fnResetModule()
+		    fnInfo("'DEBUG-',itoa(nDebugLevel)")
 		}
-		command:
-		{ 
-			stack_var char sCmd[DUET_MAX_CMD_LEN]
-			stack_var char sHeader[DUET_MAX_HDR_LEN]
-			stack_var char sParam[DUET_MAX_PARAM_LEN]
-			sCmd = data.text
-			sHeader = DuetParseCmdHeader(sCmd)
-			sParam = DuetParseCmdParam(sCmd)
-			
-			fnInfo("'sHeader: ',sHeader,' sParam: ',sParam")
-			
-			switch(sHeader)
-			{
-			case '?DEBUG':
-			{
-				fnInfo("'DEBUG-',itoa(nDebugLevel)")
-			}
-			case 'DEBUG':
-			{
-				nDebugLevel = atoi("sParam")
-			}
-			case 'REINIT':
-			{
-				fnResetModule()
-			}
-			case 'PROPERTY':
-			{
-				switch(sParam)
-				{
-					case 'IP_Address':
-					{
-						sIPAddress = DuetParseCmdParam(sCmd)
-						nControlType = _TYPE_IP
-						fnInfo("'Setting IP Address to: ',sIPAddress")
-					}
-					case 'Port':
-					{
-						stack_var char sPort[16]
-						sPort = DuetParseCmdParam(sCmd)
-						nIpPort = atoi(sPort)
-						nControlType = _TYPE_IP
-						fnInfo("'Setting IP port to: ',itoa(nIpPort)")
-					}
-					case 'Baud_Rate':
-					{
-						sBaudRate = DuetParseCmdParam(sCmd)					
-						fnInfo("'Setting Baud Rate to: ',sBaudRate")
-						nControlType = _TYPE_RS232
-						fnResetModule()
-					}
-				}
-			}
-			case 'INPUT':
-			{
-				stack_var char sInput[4]
-				stack_var integer nInput
-				sInput = DuetParseCmdParam(sCmd)
-				nInput = atoi("sInput")
-				fnInput(sParam,nInput)
-			}
-			case 'PASSTHRU':
-			{
-				send_string dvDevice,"sParam"
-			}
-			case 'QUEUE'
-			{
-				stack_var _uQueueCommand newElement
-				newElement.sData = sParam
-				fnQueuePush(newElement)		
-			}
-			default:
-			{
-				if(find_string(sHeader,'CI',1)) // Switcher command ALL
-				{
-					stack_var char sInput[4]
-					stack_var char sOutput[4]
-					stack_var integer nInput
-					stack_var integer nOutput
-					sInput = remove_string(sHeader,'O',1)
-					nInput = atoi(sInput)
-					sOutput = sHeader
-					nOutput = atoi(sOutput)
-					if(nDebugLevel == 4) {fnInfo("'COMM nInput vale: ',itoa(nInput)")}
-					if(nDebugLevel == 4) {fnInfo("'COMM nOutput vale: ',itoa(nOutput)")}
-					if(nInput) // Contidional used only when using 0 for unrouting isn't valid
-					{
-						fnSwitch(nInput,nOutput,'All')
-					}
-				}
-				else if(find_string(sHeader,'VI',1)) // Switcher command VIDEO
-				{
-					stack_var char sInput[4]
-					stack_var char sOutput[4]
-					stack_var integer nInput
-					stack_var integer nOutput
-					sInput = remove_string(sHeader,'O',1)
-					nInput = atoi(sInput)
-					sOutput = sHeader
-					nOutput = atoi(sOutput)
-					if(nDebugLevel == 4) {fnInfo("'COMM nInput vale: ',itoa(nInput)")}
-					if(nDebugLevel == 4) {fnInfo("'COMM nOutput vale: ',itoa(nOutput)")}
-					if(nInput) // Contidional used only when using 0 for unrouting isn't valid
-					{
-						fnSwitch(nInput,nOutput,'Vid')
-					}
-				}
-				else if(find_string(sHeader,'AI',1)) // Switcher command AUDIO
-				{
-					stack_var char sInput[4]
-					stack_var char sOutput[4]
-					stack_var integer nInput
-					stack_var integer nOutput
-					sInput = remove_string(sHeader,'O',1)
-					nInput = atoi(sInput)
-					sOutput = sHeader
-					nOutput = atoi(sOutput)
-					if(nDebugLevel == 4) {fnInfo("'COMM nInput vale: ',itoa(nInput)")}
-					if(nDebugLevel == 4) {fnInfo("'COMM nOutput vale: ',itoa(nOutput)")}
-					if(nInput) // Contidional used only when using 0 for unrouting isn't valid
-					{
-						fnSwitch(nInput,nOutput,'Aud')
-					}
-				}		    		
-			}
-			}
+		case 'DEBUG':
+		{
+		    nDebugLevel = atoi("sParam")
 		}
+		case 'REINIT':
+		{
+		    fnResetModule()
+		}
+		case 'PROPERTY':
+		{
+		    switch(sParam)
+		    {
+			case 'IP_Address':
+			{
+			    sIPAddress = DuetParseCmdParam(sCmd)
+			    nControlType = _TYPE_IP
+			    fnInfo("'Setting IP Address to: ',sIPAddress")
+			}
+			case 'Port':
+			{
+			    stack_var char sPort[16]
+			    sPort = DuetParseCmdParam(sCmd)
+			    nIpPort = atoi(sPort)
+			    nControlType = _TYPE_IP
+			    fnInfo("'Setting IP port to: ',itoa(nIpPort)")
+			}
+			case 'Baud_Rate':
+			{
+			    sBaudRate = DuetParseCmdParam(sCmd)					
+			    fnInfo("'Setting Baud Rate to: ',sBaudRate")
+			    nControlType = _TYPE_RS232
+			    fnResetModule()
+			}
+		    }
+		}
+		case 'INPUT':
+		{
+		    stack_var char sInput[4]
+		    stack_var integer nInput
+		    sInput = DuetParseCmdParam(sCmd)
+		    nInput = atoi("sInput")
+		    fnInput(sParam,nInput)
+		}
+		case 'PASSTHRU':
+		{
+		    send_string dvDevice,"sParam"
+		}
+		case 'QUEUE':
+		{
+		    stack_var _uQueueCommand newElement
+		    newElement.sData = sParam
+		    fnQueuePush(newElement)		
+		}
+		default:
+		{
+		    if(find_string(sHeader,'CI',1)) // Switcher command ALL
+		    {
+			stack_var char sInput[4]
+			stack_var char sOutput[4]
+			stack_var integer nInput
+			stack_var integer nOutput
+			sInput = remove_string(sHeader,'O',1)
+			nInput = atoi(sInput)
+			sOutput = sHeader
+			nOutput = atoi(sOutput)
+			if(nDebugLevel == 4) {fnInfo("'COMM nInput vale: ',itoa(nInput)")}
+			if(nDebugLevel == 4) {fnInfo("'COMM nOutput vale: ',itoa(nOutput)")}
+			if(nInput) // Contidional used only when using 0 for unrouting isn't valid
+			{
+			    fnSwitch(nInput,nOutput,'All')
+			}
+		    }
+		    else if(find_string(sHeader,'VI',1)) // Switcher command VIDEO
+		    {
+			stack_var char sInput[4]
+			stack_var char sOutput[4]
+			stack_var integer nInput
+			stack_var integer nOutput
+			sInput = remove_string(sHeader,'O',1)
+			nInput = atoi(sInput)
+			sOutput = sHeader
+			nOutput = atoi(sOutput)
+			if(nDebugLevel == 4) {fnInfo("'COMM nInput vale: ',itoa(nInput)")}
+			if(nDebugLevel == 4) {fnInfo("'COMM nOutput vale: ',itoa(nOutput)")}
+			if(nInput) // Contidional used only when using 0 for unrouting isn't valid
+			{
+			    fnSwitch(nInput,nOutput,'Vid')
+			}
+		    }
+		    else if(find_string(sHeader,'AI',1)) // Switcher command AUDIO
+		    {
+			stack_var char sInput[4]
+			stack_var char sOutput[4]
+			stack_var integer nInput
+			stack_var integer nOutput
+			sInput = remove_string(sHeader,'O',1)
+			nInput = atoi(sInput)
+			sOutput = sHeader
+			nOutput = atoi(sOutput)
+			if(nDebugLevel == 4) {fnInfo("'COMM nInput vale: ',itoa(nInput)")}
+			if(nDebugLevel == 4) {fnInfo("'COMM nOutput vale: ',itoa(nOutput)")}
+			if(nInput) // Contidional used only when using 0 for unrouting isn't valid
+			{
+			    fnSwitch(nInput,nOutput,'Aud')
+			}
+		    }		    		
+		}
+	    }
+	}
     }
 
     data_event[dvDevice]
     {
-		online:
+	online:
+	{
+	    if(nControlType == _TYPE_RS232)
+	    {
+		send_command dvDevice,"'SET BAUD ',sBaudRate,',N,8,1 485 DISABLE'"
+		send_command dvDevice,'HSOFF'
+	    }
+	    else if(nControlType == _TYPE_IP)
+	    {
+		on[data.device,DEVICE_COMMUNICATING]
+	    }
+	}
+	offline:
+	{
+	    if(nControlType == _TYPE_IP)
+	    {
+		off[data.device,DEVICE_COMMUNICATING]
+	    }
+	}
+	onerror:
+	{
+	    if(nControlType == _TYPE_IP)
+	    {
+		if(data.number != _PORT_ALREADY_IN_USE && data.number != _SOCKET_ALREADY_LISTENING)
 		{
-			if(nControlType == _TYPE_RS232)
-			{
-				send_command dvDevice,"'SET BAUD ',sBaudRate,',N,8,1 485 DISABLE'"
-				send_command dvDevice,'HSOFF'
-			}
-			else if(nControlType == _TYPE_IP)
-			{
-				on[data.device,DEVICE_COMMUNICATING]
-			}
-		}
-		offline:
+		    off[data.device,DEVICE_COMMUNICATING]
+		}	
+		if(nDebugLevel == 4)
 		{
-			if(nControlType == _TYPE_IP)
-			{
-				off[data.device,DEVICE_COMMUNICATING]
-			}
+		    fnInfo("'-->> ',fnGetIPErrorDescription(data.number)")
 		}
-		onerror:
-		{
-			if(nControlType == _TYPE_IP)
-			{
-				if(data.number != _PORT_ALREADY_IN_USE && data.number != _SOCKET_ALREADY_LISTENING)
-				{
-					off[data.device,DEVICE_COMMUNICATING]
-				}	
-				if(nDebugLevel == 4)
-				{
-					fnInfo("'-->> ',fnGetIPErrorDescription(data.number)")
-				}
-			}		
-		}
-		string:
-		{
-			if(nDebugLevel == 4) {fnInfo("'<<-- ',data.text")}
-			fnProcessBuffer()
-		}
+	    }		
+	}
+	string:
+	{
+	    if(nDebugLevel == 4) {fnInfo("'<<-- ',data.text")}
+	    fnProcessBuffer()
+	}
     }
 
     timeline_event[_TLID]
     {
-		if(nControlType == _TYPE_IP)
+	if(nControlType == _TYPE_IP)
+	{
+	    wait 50 'reconnect'
+	    {
+		if(![dvDevice,DEVICE_COMMUNICATING])
 		{
-			wait 50 'reconnect'
-			{
-				if(![dvDevice,DEVICE_COMMUNICATING])
-				{
-					fnConnect()
-				}
-			}
+		    fnConnect()
 		}
-	
-		fnMainLine()
-		fnFeedback()
+	    }
+	}
+
+	fnMainLine()
+	fnFeedback()
     }
 
-(***********************************************************)
-(*		    	END OF PROGRAM			   *)
-(***********************************************************) 
+(********************************************)
+(*             END OF PROGRAM               *)
+(********************************************) 
