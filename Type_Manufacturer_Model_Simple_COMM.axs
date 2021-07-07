@@ -49,79 +49,79 @@ DEFINE_START
 
     translate_device(vdvDeviceToTranslate,vdvDevice)
     timeline_create(_TLID,lTimes,1,TIMELINE_RELATIVE,TIMELINE_REPEAT)
-    
+
     define_function fnResetModule()
     {
-	set_virtual_channel_count(vdvDevice,1024)
-	set_virtual_level_count(vdvDevice,16)    
-	
-	off[vdvDevice,POWER_FB]
-	
-	if(nControlType == _TYPE_RS232)
-	{
-	    send_command dvDevice,"'SET BAUD ',sBaudRate,',N,8,1 485 DISABLE'"
-	    send_command dvDevice,'HSOFF'
-	}
-	else if(nControlType == _TYPE_IP)
-	{
-	    off[dvDevice,DEVICE_COMMUNICATING]
-	}
+        set_virtual_channel_count(vdvDevice,1024)
+        set_virtual_level_count(vdvDevice,16)    
+
+        off[vdvDevice,POWER_FB]
+        
+        if(nControlType == _TYPE_RS232)
+        {
+            send_command dvDevice,"'SET BAUD ',sBaudRate,',N,8,1 485 DISABLE'"
+            send_command dvDevice,'HSOFF'
+        }
+        else if(nControlType == _TYPE_IP)
+        {
+            off[dvDevice,DEVICE_COMMUNICATING]
+        }
     }
     
     define_function fnConnect()
     {
-	ip_client_open(dvDevice.PORT,sIPAddress,lIPPort,IP_TCP)
+        ip_client_open(dvDevice.PORT,sIPAddress,lIPPort,IP_TCP)
     }
     
     define_function fnPower(integer bPower)
     {
-	fnInfo("'fnPower(',itoa(bPower),')'")
-	if(bPower) {send_string dvDevice,"''"}
-	else 	   {send_string dvDevice,"''"}
+        fnInfo("'fnPower(',itoa(bPower),')'")
+        if(bPower) {send_string dvDevice,"''"}
+        else 	   {send_string dvDevice,"''"}
     }
     
     define_function fnInput(char sType[],integer nNum)
     {
-	fnInfo("'fnInput(',sType,',',itoa(nNum),')'")
-	send_string dvDevice,"''"
+        fnInfo("'fnInput(',sType,',',itoa(nNum),')'")
+        send_string dvDevice,"''"
     }
     
     define_function fnProcessBuffer()
     {
-	local_var sPacket[255]
-	while (fnTakePacket(sPacket)) {fnProcessPacket(sPacket)}
+        local_var sPacket[255]
+        while (fnTakePacket(sPacket)) {fnProcessPacket(sPacket)}
     }  
 
     define_function integer fnTakePacket(char sPacket[])
     {
-	stack_var integer r
-	r = false
-	#warn '*** Insert here the code to extract the command from sBuffer'
-	
-	return r (* It would return TRUE if successfuly took the command from the buffer. *)
+        stack_var integer r
+        r = false
+        #warn '*** Insert here the code to extract the command from sBuffer'
+
+        return r (* It would return TRUE if successfuly took the command from the buffer. *)
     }
 
     define_function fnProcessPacket(char sPacket[])
     {
-	#warn '*** Insert the code to interpret the answer'
-	(*
-	select
-	{
-	    active(find_string(sPacket,'something',1)):
-	    {
-	    
-	    }
-	}
-	*)
-	
-	#warn '*** Depending on the answer, activate the feedback channels in the virtual device'
-	
-	(*
-	[vdvDevice,	POWER_FB]
-	[vdvDevice,LAMP_COOLING_FB]
-	[vdvDevice,LAMP_WARMING_FB]
-	[..]
-	*)
+        #warn '*** Insert the code to interpret the answer'
+        (*
+        select
+        {
+            active(find_string(sPacket,'something',1)):
+            {
+            
+            }
+        }
+        *)
+
+        #warn '*** Depending on the answer, activate the feedback channels in the virtual device'
+
+        (*
+        [vdvDevice,	POWER_FB]
+        [vdvDevice,LAMP_COOLING_FB]
+        [vdvDevice,LAMP_WARMING_FB]
+        [..]
+        *)
     }    
 
 (***********************************************************)
@@ -131,163 +131,163 @@ DEFINE_EVENT
 
     channel_event[vdvDevice,0]
     {
-	on:
-	{
-	    switch(channel.channel)
-	    {
-		case POWER:
-		{
-		    if([vdvDevice,POWER_FB]) {fnPower(false)}
-		    else	             {fnPower(true)}		
-		}
-		case PWR_ON:
-		{
-		    fnPower(true)
-		}
-		case PWR_OFF:
-		{
-		    fnPower(false)
-		}
-		case PIC_MUTE:
-		{
-		    if([vdvDevice,PIC_MUTE_FB]) 
-		    {
-			// Video unmute
-		    }
-		    else								 
-		    {
-			// Video mute
-		    }
-		    off[vdvDevice,PIC_MUTE]		
-		}
-		case MENU_FUNC:	{}
-		case MENU_UP:	{}
-		case MENU_DN:	{}
-		case MENU_LT:	{}
-		case MENU_RT:	{}
-	    }
-	    
-	    off[channel.device,channel.channel]
-	}
+        on:
+        {
+            switch(channel.channel)
+            {
+                case POWER:
+                {
+                    if([vdvDevice,POWER_FB]) {fnPower(false)}
+                    else	             {fnPower(true)}		
+                }
+                case PWR_ON:
+                {
+                    fnPower(true)
+                }
+                case PWR_OFF:
+                {
+                    fnPower(false)
+                }
+                case PIC_MUTE:
+                {
+                    if([vdvDevice,PIC_MUTE_FB]) 
+                    {
+                    // Video unmute
+                    }
+                    else								 
+                    {
+                    // Video mute
+                    }
+                    off[vdvDevice,PIC_MUTE]		
+                }
+                case MENU_FUNC:	{}
+                case MENU_UP:	{}
+                case MENU_DN:	{}
+                case MENU_LT:	{}
+                case MENU_RT:	{}
+            }
+            
+            off[channel.device,channel.channel]
+        }
     }
 
     data_event[vdvDevice]
     {
-	command:
-	{
-	    stack_var char sCmd[DUET_MAX_CMD_LEN]
-	    stack_var char sHeader[DUET_MAX_HDR_LEN]
-	    stack_var char sParam[DUET_MAX_PARAM_LEN]
-	    sCmd = data.text
-	    sHeader = DuetParseCmdHeader(sCmd)
-	    sParam = DuetParseCmdParam(sCmd)
-	    
-	    fnInfo("'sHeader: ',sHeader,' sParam: ',sParam")
-	    
-	    switch(sHeader)
-	    {
-		case '?DEBUG':
-		{
-		    fnInfo("'DEBUG-',itoa(nDebugLevel)")
-		}
-		case 'DEBUG':
-		{
-		    nDebugLevel = atoi("sParam")
-		}
-		case 'REINIT':
-		{
-		    fnResetModule()
-		}
-		case 'PROPERTY':
-		{
-		    switch(sParam)
-		    {
-			case 'IP_Address':
-			{
-			    sIPAddress = DuetParseCmdParam(sCmd)
-			    nControlType = _TYPE_IP
-			    fnInfo("'Setting IP Address to: ',sIPAddress")
-			}
-			case 'Port':
-			{
-			    stack_var char sPort[16]
-			    sPort = DuetParseCmdParam(sCmd)
-			    lIpPort = atoi(sPort)
-			    nControlType = _TYPE_IP
-			    fnInfo("'Setting IP port to: ',itoa(lIpPort)")
-			}
-			case 'Baud_Rate':
-			{
-			    sBaudRate = DuetParseCmdParam(sCmd)					
-			    fnInfo("'Setting Baud Rate to: ',sBaudRate")
-			    nControlType = _TYPE_RS232
-			    fnResetModule()
-			}
-		    }
-		}
-		case 'INPUT':
-		{
-		    stack_var char sInput[4]
-		    stack_var integer nInput
-		    sInput = DuetParseCmdParam(sCmd)
-		    nInput = atoi("sInput")
-		    fnInput(sParam,nInput)
-		}
-		case 'PASSTHRU':
-		{
-		    if(nDebugLevel == 4) {fnInfo("'PASSTHRU -->> ',sParam")}
-		    send_string dvDevice,"sParam"
-		}
-	    }
-	}
+        command:
+        {
+            stack_var char sCmd[DUET_MAX_CMD_LEN]
+            stack_var char sHeader[DUET_MAX_HDR_LEN]
+            stack_var char sParam[DUET_MAX_PARAM_LEN]
+            sCmd = data.text
+            sHeader = DuetParseCmdHeader(sCmd)
+            sParam = DuetParseCmdParam(sCmd)
+            
+            fnInfo("'sHeader: ',sHeader,' sParam: ',sParam")
+            
+            switch(sHeader)
+            {
+                case '?DEBUG':
+                {
+                    fnInfo("'DEBUG-',itoa(nDebugLevel)")
+                }
+                case 'DEBUG':
+                {
+                    nDebugLevel = atoi("sParam")
+                }
+                case 'REINIT':
+                {
+                    fnResetModule()
+                }
+                case 'PROPERTY':
+                {
+                    switch(sParam)
+                    {
+                        case 'IP_Address':
+                        {
+                            sIPAddress = DuetParseCmdParam(sCmd)
+                            nControlType = _TYPE_IP
+                            fnInfo("'Setting IP Address to: ',sIPAddress")
+                        }
+                        case 'Port':
+                        {
+                            stack_var char sPort[16]
+                            sPort = DuetParseCmdParam(sCmd)
+                            lIpPort = atoi(sPort)
+                            nControlType = _TYPE_IP
+                            fnInfo("'Setting IP port to: ',itoa(lIpPort)")
+                        }
+                        case 'Baud_Rate':
+                        {
+                            sBaudRate = DuetParseCmdParam(sCmd)					
+                            fnInfo("'Setting Baud Rate to: ',sBaudRate")
+                            nControlType = _TYPE_RS232
+                            fnResetModule()
+                        }
+                    }
+                }
+                case 'INPUT':
+                {
+                    stack_var char sInput[4]
+                    stack_var integer nInput
+                    sInput = DuetParseCmdParam(sCmd)
+                    nInput = atoi("sInput")
+                    fnInput(sParam,nInput)
+                }
+                case 'PASSTHRU':
+                {
+                    if(nDebugLevel == 4) {fnInfo("'PASSTHRU -->> ',sParam")}
+                    send_string dvDevice,"sParam"
+                }
+            }
+        }
     }
 
     data_event[dvDevice]
     {
-	online:
-	{
-	    on[vdvDevice,DEVICE_COMMUNICATING]
-	}
-	offline:
-	{
-	    off[vdvDevice,DEVICE_COMMUNICATING]
-	}
-	onerror:
-	{
-	    if(nControlType == _TYPE_IP)
-	    {
-		if(data.number != _PORT_ALREADY_IN_USE && data.number != _SOCKET_ALREADY_LISTENING)
-		{
-		    off[data.device,DEVICE_COMMUNICATING]
-		}
-		
-		if(nDebugLevel == 4)
-		{
-		    fnInfo("'-->> ',fnGetIPErrorDescription(data.number)")
-		}
-	    }		
-	}
-	string:
-	{
-	    if(nDebugLevel == 4) {fnInfo("'<<-- ',data.text")}
-	    fnProcessBuffer()
-	}
+        online:
+        {
+            on[vdvDevice,DEVICE_COMMUNICATING]
+        }
+        offline:
+        {
+            off[vdvDevice,DEVICE_COMMUNICATING]
+        }
+        onerror:
+        {
+            if(nControlType == _TYPE_IP)
+            {
+                if(data.number != _PORT_ALREADY_IN_USE && data.number != _SOCKET_ALREADY_LISTENING)
+                {
+                    off[data.device,DEVICE_COMMUNICATING]
+                }
+                
+                if(nDebugLevel == 4)
+                {
+                    fnInfo("'-->> ',fnGetIPErrorDescription(data.number)")
+                }
+            }		
+        }
+        string:
+        {
+            if(nDebugLevel == 4) {fnInfo("'<<-- ',data.text")}
+            fnProcessBuffer()
+        }
     }
 
     timeline_event[_TLID]
     {
-	if(nControlType == _TYPE_IP)
-	{
-	    wait 50 'reconnect'
-	    {
-		if(![vdvDevice,DEVICE_COMMUNICATING])
-		{
-		    fnConnect()
-		}
-	    }
-	}
+        if(nControlType == _TYPE_IP)
+        {
+            wait 50 'reconnect'
+            {
+                if(![vdvDevice,DEVICE_COMMUNICATING])
+                {
+                    fnConnect()
+                }
+            }
+        }
     }
     
 (********************************************)
 (*             END OF PROGRAM               *)
-(********************************************) 
+(********************************************)
