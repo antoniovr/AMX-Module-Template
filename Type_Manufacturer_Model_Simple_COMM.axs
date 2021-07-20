@@ -3,7 +3,7 @@
 (*  FILE CREATED ON: 07/22/2019  AT: 09:13:31              *)
 (***********************************************************)
 (***********************************************************)
-(*  FILE_LAST_MODIFIED_ON: 03/15/2021  AT: 08:11:41        *)
+(*  FILE_LAST_MODIFIED_ON: 07/19/2021  AT: 10:40:42        *)
 (***********************************************************)
 
 #include 'SNAPI'
@@ -53,7 +53,7 @@ DEFINE_START
     define_function fnResetModule()
     {
         set_virtual_channel_count(vdvDevice,1024)
-        set_virtual_level_count(vdvDevice,16)    
+        set_virtual_level_count(vdvDevice,16)
 
         off[vdvDevice,POWER_FB]
         
@@ -117,7 +117,7 @@ DEFINE_START
         #warn '*** Depending on the answer, activate the feedback channels in the virtual device'
 
         (*
-        [vdvDevice,	POWER_FB]
+        [vdvDevice,POWER_FB]
         [vdvDevice,LAMP_COOLING_FB]
         [vdvDevice,LAMP_WARMING_FB]
         [..]
@@ -138,7 +138,7 @@ DEFINE_EVENT
                 case POWER:
                 {
                     if([vdvDevice,POWER_FB]) {fnPower(false)}
-                    else	             {fnPower(true)}		
+                    else                     {fnPower(true)}
                 }
                 case PWR_ON:
                 {
@@ -154,17 +154,17 @@ DEFINE_EVENT
                     {
                     // Video unmute
                     }
-                    else								 
+                    else
                     {
                     // Video mute
                     }
-                    off[vdvDevice,PIC_MUTE]		
+                    off[vdvDevice,PIC_MUTE]
                 }
-                case MENU_FUNC:	{}
-                case MENU_UP:	{}
-                case MENU_DN:	{}
-                case MENU_LT:	{}
-                case MENU_RT:	{}
+                case MENU_FUNC: {}
+                case MENU_UP:   {}
+                case MENU_DN:   {}
+                case MENU_LT:   {}
+                case MENU_RT:   {}
             }
             
             off[channel.device,channel.channel]
@@ -218,7 +218,7 @@ DEFINE_EVENT
                         }
                         case 'Baud_Rate':
                         {
-                            sBaudRate = DuetParseCmdParam(sCmd)					
+                            sBaudRate = DuetParseCmdParam(sCmd)
                             fnInfo("'Setting Baud Rate to: ',sBaudRate")
                             nControlType = _TYPE_RS232
                             fnResetModule()
@@ -265,7 +265,7 @@ DEFINE_EVENT
                 {
                     fnInfo("'-->> ',fnGetIPErrorDescription(data.number)")
                 }
-            }		
+            }
         }
         string:
         {

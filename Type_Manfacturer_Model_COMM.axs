@@ -1,5 +1,5 @@
 (***********************************************************)
-(*  FILE_LAST_MODIFIED_ON: 03/15/2021  AT: 08:12:12        *)
+(*  FILE_LAST_MODIFIED_ON: 07/19/2021  AT: 10:39:40        *)
 (***********************************************************)
 
 MODULE_NAME='Type_Manfacturer_Model_COMM' (dev vdvDeviceToTranslate,
@@ -381,7 +381,7 @@ DEFINE_START
 
     define_function fnFeedback()
     {
-	    #warn '*** Insert feedback if neccessary'
+        #warn '*** Insert feedback if neccessary'
     }
 
 DEFINE_EVENT
@@ -395,7 +395,7 @@ DEFINE_EVENT
                 case POWER:
                 {
                     if([vdvDevice,POWER_FB]) {fnPower(false)}
-                    else	             {fnPower(true)}		
+                    else                     {fnPower(true)}
                 }
                 case PWR_ON:
                 {
@@ -411,11 +411,11 @@ DEFINE_EVENT
                     {
                         // Video unmute
                     }
-                    else								 
+                    else
                     {
                         // Video mute
                     }
-                    off[vdvDevice,PIC_MUTE]		
+                    off[vdvDevice,PIC_MUTE]
                 }
                 case PLAY: {}
                 case STOP: {}
@@ -506,7 +506,7 @@ DEFINE_EVENT
                         }
                         case 'Baud_Rate':
                         {
-                            sBaudRate = DuetParseCmdParam(sCmd)					
+                            sBaudRate = DuetParseCmdParam(sCmd)
                             fnInfo("'Setting Baud Rate to: ',sBaudRate")
                             nControlType = _TYPE_RS232
                             fnResetModule()
@@ -529,7 +529,7 @@ DEFINE_EVENT
                 {
                     stack_var _uQueueCommand newElement
                     newElement.sData = sParam
-                    fnQueuePush(newElement)		
+                    fnQueuePush(newElement)
                 }
                 default:
                 {
@@ -617,12 +617,12 @@ DEFINE_EVENT
                 if(data.number != _PORT_ALREADY_IN_USE && data.number != _SOCKET_ALREADY_LISTENING)
                 {
                     off[data.device,DEVICE_COMMUNICATING]
-                }	
+                }
                 if(nDebugLevel == 4)
                 {
                     fnInfo("'-->> ',fnGetIPErrorDescription(data.number)")
                 }
-            }		
+            }
         }
         string:
         {
