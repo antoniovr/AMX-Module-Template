@@ -531,6 +531,28 @@ DEFINE_EVENT
                     newElement.sData = sParam
                     fnQueuePush(newElement)
                 }
+                case 'SIMULATED':
+                {
+                    if(sParam == 'ON')
+                    {
+                        on[vdvDevice,SIMULATED_FB]
+                    }
+                    else if(sParam == 'OFF')
+                    {
+                        off[vdvDevice,SIMULATED_FB]
+                    }
+                }
+                case 'GET_SIMULATED':
+                {
+                    if([vdvDevice,SIMULATED_FB])
+                    {
+                        send_string vdvDevice,'SIMULATED IS [ON]'
+                    }
+                    else
+                    {
+                        send_string vdvDevice,'SIMULATED IS [OFF]'
+                    }
+                }                
                 default:
                 {
                     if(find_string(sHeader,'CI',1)) // Switcher command ALL
