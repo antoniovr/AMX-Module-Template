@@ -1,5 +1,5 @@
 (***********************************************************)
-(*  FILE_LAST_MODIFIED_ON: 07/19/2021  AT: 10:39:40        *)
+(*  FILE_LAST_MODIFIED_ON: 07/27/2021  AT: 13:33:49        *)
 (***********************************************************)
 
 MODULE_NAME='Type_Manfacturer_Model_COMM' (dev vdvDeviceToTranslate,
@@ -350,10 +350,10 @@ DEFINE_START
         #warn '*** Insert here the code to extract the command from sBuffer'
         
         return r (* It would return TRUE if successfuly took the command from the buffer. *)
-        }
+    }
 
-        define_function fnProcessPacket(char sPacket[])
-        {
+    define_function fnProcessPacket(char sPacket[])
+    {
         #warn '*** Insert the code to interpret the answer'
         (*
         select
